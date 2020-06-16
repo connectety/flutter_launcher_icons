@@ -100,7 +100,7 @@ void createAdaptiveIcons(Map<String, dynamic> flutterLauncherIconsConfig) {
   }
 
   // Create adaptive icon background
-  if (isAdaptiveIconConfigPngFile(backgroundConfig)) {
+  if (isPngJpgImage(backgroundConfig) || isSvgImage(backgroundConfig)) {
     createAdaptiveBackgrounds(flutterLauncherIconsConfig, backgroundConfig);
   } else {
     createAdaptiveIconMipmapXmlFile(flutterLauncherIconsConfig);
@@ -304,11 +304,6 @@ int minSdk() {
 /// value.
 String getAndroidIconPath(Map<String, dynamic> config) {
   return config['image_path_android'] ?? config['image_path'];
-}
-
-/// Returns true if the adaptive icon configuration is a PNG image
-bool isAdaptiveIconConfigPngFile(String backgroundFile) {
-  return backgroundFile.endsWith('.png');
 }
 
 /// (NOTE THIS IS JUST USED FOR UNIT TEST)
