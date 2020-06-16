@@ -7,11 +7,13 @@ authors:
 - Flutter Community <community@flutter.zone>
 - Franz Silva <franzsilva@gmail.com>
 - Mark O'Sullivan <mos182@hotmail.co.uk>
+- Simon Lightfoot <simon@devangels.london>
 
 dependencies:
-  image: "^2.1.1"
-  args: "^1.5.0"
-  yaml: "^2.1.15"
+  image: '^2.1.1'
+  args: '^1.5.0'
+  yaml: '^2.1.15'
+  path: '^1.7.0'
 
 environment:
   sdk: '>=2.2.0 <3.0.0'

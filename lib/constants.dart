@@ -24,3 +24,6 @@ const String errorMissingRegularAndroid =
 const String errorIncorrectIconName =
     'The icon name must contain only lowercase a-z, 0-9, or underscore: '
     'E.g. "ic_my_new_icon"';
+const String errorInvalidImageFormat = 'Image used was not SVG';
+
+const String warningAlreadyPng = 'Warning: Image used for SVG -> PNG conversion is already a PNG image';

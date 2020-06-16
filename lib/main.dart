@@ -109,8 +109,7 @@ Map<String, dynamic> loadConfigFileFromArgResults(ArgResults argResults,
 Map<String, dynamic> loadConfigFile(String path, String fileOptionResult) {
   final File file = File(path);
   final String yamlString = file.readAsStringSync();
-  // ignore: always_specify_types
-  final Map yamlMap = loadYaml(yamlString);
+  final YamlMap yamlMap = loadYaml(yamlString);
 
   if (yamlMap == null || !(yamlMap['flutter_icons'] is Map)) {
     stderr.writeln(NoConfigFoundException('Check that your config file '

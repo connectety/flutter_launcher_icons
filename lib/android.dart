@@ -1,9 +1,12 @@
 import 'dart:io';
+
+import 'package:flutter_launcher_icons/constants.dart' as constants;
+import 'package:flutter_launcher_icons/custom_exceptions.dart';
+import 'package:flutter_launcher_icons/svg2png.dart';
 import 'package:flutter_launcher_icons/utils.dart';
 import 'package:flutter_launcher_icons/xml_templates.dart' as xml_template;
 import 'package:image/image.dart';
-import 'package:flutter_launcher_icons/custom_exceptions.dart';
-import 'package:flutter_launcher_icons/constants.dart' as constants;
+import 'package:path/path.dart' as p;
 
 class AndroidIconTemplate {
   AndroidIconTemplate({this.size, this.directoryName});
@@ -27,19 +30,52 @@ List<AndroidIconTemplate> androidIcons = <AndroidIconTemplate>[
   AndroidIconTemplate(directoryName: 'mipmap-xxxhdpi', size: 192),
 ];
 
-void createDefaultIcons(Map<String, dynamic> flutterLauncherIconsConfig) {
+void createDefaultIcons(Map<String, dynamic> yamlConfig) {
   print('Creating default icons Android');
-  final String filePath = getAndroidIconPath(flutterLauncherIconsConfig);
-  final Image image = decodeImage(File(filePath).readAsBytesSync());
-  if (isCustomAndroidFile(flutterLauncherIconsConfig)) {
-    print('Adding a new Android launcher icon');
-    final String iconName = getNewIconName(flutterLauncherIconsConfig);
-    isAndroidIconNameCorrectFormat(iconName);
-    final String iconPath = '$iconName.png';
+  final String filePath = getAndroidIconPath(yamlConfig);
+  if (isCustomAndroidFile(yamlConfig)) {
+    addNewIcon(yamlConfig, filePath);
+  } else {
+    replaceDefaultFlutterProjectIcon(filePath);
+  }
+}
+
+// Adding new icon to the project not replacing the default Flutter project icon
+void addNewIcon(
+    Map<String, dynamic> flutterLauncherIconsConfig,
+    String filePath) {
+  print('Adding a new Android launcher icon');
+
+  // get the file name entered by the user
+  final String iconName = getNewIconName(flutterLauncherIconsConfig);
+
+  // ensure the new icon name is in the correct format
+  // otherwise throw exception
+  isAndroidIconNameCorrectFormat(iconName);
+
+  final String iconPath = '$iconName.png';
+
+  if (isSvgImage(filePath)) {
+    for (AndroidIconTemplate template in androidIcons) {
+      convertSvgToPng(iconPath, filePath, template.size, template.size);
+    }
+  } else {
+    final Image image = decodeImage(File(filePath).readAsBytesSync());
     for (AndroidIconTemplate template in androidIcons) {
       saveNewImages(template, image, iconPath);
     }
-    overwriteAndroidManifestWithNewLauncherIcon(iconName);
+  }
+
+  overwriteAndroidManifestWithNewLauncherIcon(iconName);
+}
+
+// replaces ic_launcher.png launcher icon
+void replaceDefaultFlutterProjectIcon(String filePath) {
+  print(File(filePath).readAsStringSync());
+
+  Image image;
+  if (isPngImage(filePath)) {
+    image = decodeImage(File(filePath).readAsBytesSync());
   } else {
     print('Overwriting the default Android launcher icon with a new icon');
     for (AndroidIconTemplate template in androidIcons) {
@@ -112,23 +148,14 @@ void updateColorsXmlFile(String backgroundConfig) {
 /// FILE LOCATED HERE: res/mipmap-anydpi/{icon-name-from-yaml-config}.xml
 void createAdaptiveIconMipmapXmlFile(
     Map<String, dynamic> flutterLauncherIconsConfig) {
-  if (isCustomAndroidFile(flutterLauncherIconsConfig)) {
-    File(constants.androidAdaptiveXmlFolder +
-            getNewIconName(flutterLauncherIconsConfig) +
-            '.xml')
-        .create(recursive: true)
-        .then((File adaptiveIcon) {
-      adaptiveIcon.writeAsString(xml_template.icLauncherXml);
-    });
-  } else {
-    File(constants.androidAdaptiveXmlFolder +
-            constants.androidDefaultIconName +
-            '.xml')
-        .create(recursive: true)
-        .then((File adaptiveIcon) {
-      adaptiveIcon.writeAsString(xml_template.icLauncherXml);
-    });
-  }
+  final String adaptiveName =
+    isCustomAndroidFile(flutterLauncherIconsConfig)
+      ? getNewIconName(flutterLauncherIconsConfig)
+      : constants.androidDefaultIconName;
+  final String adaptivePath =
+    p.join(constants.androidAdaptiveXmlFolder, adaptiveName + '.xml');
+  final File adaptiveIcon = File(adaptivePath)..createSync(recursive: true);
+  adaptiveIcon.writeAsString(xml_template.icLauncherXml);
 }
 
 /// creates adaptive background using png image
@@ -149,34 +176,22 @@ void createAdaptiveBackgrounds(
 
   // Creates the xml file required for the adaptive launcher icon
   // FILE LOCATED HERE:  res/mipmap-anydpi/{icon-name-from-yaml-config}.xml
-  if (isCustomAndroidFile(yamlConfig)) {
-    File(constants.androidAdaptiveXmlFolder +
-            getNewIconName(yamlConfig) +
-            '.xml')
-        .create(recursive: true)
-        .then((File adaptiveIcon) {
-      adaptiveIcon.writeAsString(xml_template.icLauncherDrawableBackgroundXml);
-    });
-  } else {
-    File(constants.androidAdaptiveXmlFolder +
-            constants.androidDefaultIconName +
-            '.xml')
-        .create(recursive: true)
-        .then((File adaptiveIcon) {
-      adaptiveIcon.writeAsString(xml_template.icLauncherDrawableBackgroundXml);
-    });
-  }
+  final String adaptiveName =
+    isCustomAndroidFile(yamlConfig)
+      ? getNewIconName(yamlConfig)
+      : constants.androidDefaultIconName;
+  final String adaptivePath = p.join(
+      constants.androidAdaptiveXmlFolder, adaptiveName + '.xml');
+  final File adaptiveIcon = File(adaptivePath)..createSync(recursive: true);
+  adaptiveIcon.writeAsString(xml_template.icLauncherDrawableBackgroundXml);
 }
 
 /// Creates a colors.xml file if it was missing from android/app/src/main/res/values/colors.xml
 void createNewColorsFile(String backgroundColor) {
-  File(constants.androidColorsFile)
-      .create(recursive: true)
-      .then((File colorsFile) {
-    colorsFile.writeAsString(xml_template.colorsXml).then((File file) {
-      updateColorsFile(colorsFile, backgroundColor);
-    });
-  });
+  final File colorsFile =
+    File(constants.androidColorsFile)..createSync(recursive: true);
+  colorsFile.writeAsString(xml_template.colorsXml);
+  updateColorsFile(colorsFile, backgroundColor);
 }
 
 /// Updates the colors.xml with the new adaptive launcher icon color
@@ -221,27 +236,24 @@ String getNewIconName(Map<String, dynamic> config) {
 /// Note: Do not change interpolation unless you end up with better results (see issue for result when using cubic
 /// interpolation)
 /// https://github.com/fluttercommunity/flutter_launcher_icons/issues/101#issuecomment-495528733
-void overwriteExistingIcons(
-    AndroidIconTemplate template, Image image, String filename) {
-  final Image newFile = createResizedImage(template.size, image);
-  File(constants.androidResFolder + template.directoryName + '/' + filename)
-      .create(recursive: true)
-      .then((File file) {
-    file.writeAsBytesSync(encodePng(newFile));
-  });
+void overwriteExistingIcons(AndroidIconTemplate template, Image image,
+    String filename) {
+  final Image newImage = createResizedImage(template.size, image);
+  final String newFilePath = p.join(
+      constants.androidResFolder, template.directoryName, filename);
+  final File newFile = File(newFilePath)..createSync(recursive: true);
+  newFile.writeAsBytesSync(encodePng(newImage));
 }
 
 /// Saves new launcher icons to the project, keeping the old launcher icons.
 /// Note: Do not change interpolation unless you end up with better results
 /// https://github.com/fluttercommunity/flutter_launcher_icons/issues/101#issuecomment-495528733
-void saveNewImages(
-    AndroidIconTemplate template, Image image, String iconFilePath) {
-  final Image newFile = createResizedImage(template.size, image);
-  File(constants.androidResFolder + template.directoryName + '/' + iconFilePath)
-      .create(recursive: true)
-      .then((File file) {
-    file.writeAsBytesSync(encodePng(newFile));
-  });
+void saveNewImages(AndroidIconTemplate template, Image image, String iconFilePath) {
+  final Image newImage = createResizedImage(template.size, image);
+  final String newFilePath = p.join(
+      constants.androidResFolder, template.directoryName, iconFilePath);
+  final File newFile = File(newFilePath)..createSync(recursive: true);
+  newFile.writeAsBytesSync(encodePng(newImage));
 }
 
 /// Updates the line which specifies the launcher icon within the AndroidManifest.xml
