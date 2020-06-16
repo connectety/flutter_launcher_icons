@@ -5,17 +5,21 @@ import 'package:path/path.dart' as p;
 /// Can throw ConversionException
 /// Example: convertSvgToPng(p.absolute('assets/tiger.svg'), p.absolute('assets/tiger.png'), 2048, 2048);
 void convertSvgToPng(String svgPath, String pngPath, int width, int height) {
+  assert (pngPath.endsWith('.png'));
+
   final String inkscapePath = findExecutable('inkscape');
   if (inkscapePath == null) {
     throw const ConversionException('No inkscape installation found.');
   }
   final ProcessResult result = Process.runSync(
     inkscapePath,
-    <String>[svgPath, '--export-png=$pngPath', '-w=$width', '-h=$height'],
+    <String>[svgPath, '--export-filename=$pngPath', '--export-width=$width', '--export-height=$height'],
   );
   if (result.stderr != '') {
-    throw ConversionException('Inkscape produced an error: ${result.stderr}');
-  } else if (result.exitCode != 0) {
+    print('Inkscape produced an error: ${result.stderr}');
+  }
+
+  if (result.exitCode != 0) {
     throw ConversionException('Inkscape failed to work correctly: ${result.exitCode}');
   }
 }

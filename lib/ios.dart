@@ -5,6 +5,9 @@ import 'package:image/image.dart';
 import 'package:flutter_launcher_icons/constants.dart';
 import 'package:path/path.dart' as p;
 
+import 'custom_exceptions.dart';
+import 'svg2png.dart';
+
 /// File to handle the creation of icons for iOS platform
 class IosIconTemplate {
   IosIconTemplate({this.size, this.name});
@@ -39,7 +42,6 @@ List<IosIconTemplate> iosIcons = <IosIconTemplate>[
 
 void createIcons(Map<String, dynamic> config) {
   final String filePath = config['image_path_ios'] ?? config['image_path'];
-  final Image image = decodeImage(File(filePath).readAsBytesSync());
   String iconName;
   final dynamic iosConfig = config['ios'];
   // If the IOS configuration is a string then the user has specified a new icon to be created
@@ -48,7 +50,7 @@ void createIcons(Map<String, dynamic> config) {
     final String newIconName = iosConfig;
     print('Adding new iOS launcher icon');
     for (IosIconTemplate template in iosIcons) {
-      saveNewIcons(template, image, newIconName);
+      saveNewIcons(template, filePath, newIconName);
     }
     iconName = newIconName;
     changeIosLauncherIcon(iconName);
@@ -59,7 +61,7 @@ void createIcons(Map<String, dynamic> config) {
   else {
     print('Overwriting default iOS launcher icon with new icon');
     for (IosIconTemplate template in iosIcons) {
-      overwriteDefaultIcons(template, image);
+      overwriteDefaultIcons(template, filePath);
     }
     iconName = iosDefaultIconName;
     changeIosLauncherIcon('AppIcon');
@@ -69,21 +71,41 @@ void createIcons(Map<String, dynamic> config) {
 /// Note: Do not change interpolation unless you end up with better results (see issue for result when using cubic
 /// interpolation)
 /// https://github.com/fluttercommunity/flutter_launcher_icons/issues/101#issuecomment-495528733
-void overwriteDefaultIcons(IosIconTemplate template, Image image) {
-  final Image newFile = createResizedImage(template.size, image);
-  final String path = p.join(iosDefaultIconFolder, iosDefaultIconName + template.name + '.png');
-  File(path)..writeAsBytesSync(encodePng(newFile));
+void overwriteDefaultIcons(IosIconTemplate template, String imagePath) {
+  final String newIconPath = p.join(iosDefaultIconFolder, iosDefaultIconName + template.name + '.png');
+  if (isPngImage(imagePath)) {
+    final Image image = decodeImage(File(imagePath).readAsBytesSync());
+
+    final Image newFile = createResizedImage(template.size, image);
+    File(newIconPath)..writeAsBytesSync(encodePng(newFile));
+  } else if (isSvgImage(imagePath)) {
+    convertSvgToPng(imagePath, newIconPath, template.size, template.size);
+  } else {
+    throw const InvalidImageFormatException();
+  }
 }
 
 /// Note: Do not change interpolation unless you end up with better results (see issue for result when using cubic
 /// interpolation)
 /// https://github.com/fluttercommunity/flutter_launcher_icons/issues/101#issuecomment-495528733
-void saveNewIcons(IosIconTemplate template, Image image, String newIconName) {
-  final String newIconFolder = p.join(iosAssetFolder, newIconName + '.appiconset/');
-  final Image newFile = createResizedImage(template.size, image);
-  File(newIconFolder + newIconName + template.name + '.png').create(recursive: true).then((File file) {
-    file.writeAsBytesSync(encodePng(newFile));
-  });
+void saveNewIcons(IosIconTemplate template, String filePath, String newIconName) {
+  final String newIconPath = p.join(
+    iosAssetFolder,
+    newIconName + '.appiconset/',
+    newIconName + template.name + '.png',
+  );
+
+  if (isPngImage(filePath)) {
+    final Image image = decodeImage(File(filePath).readAsBytesSync());
+    final Image newImage = createResizedImage(template.size, image);
+
+    final File file = File(newIconPath)..createSync(recursive: true);
+    file.writeAsBytesSync(encodePng(newImage));
+  } else if (isSvgImage(filePath)) {
+    convertSvgToPng(filePath, newIconPath, template.size, template.size);
+  } else {
+    throw const InvalidImageFormatException();
+  }
 }
 
 Future<void> changeIosLauncherIcon(String iconName) async {
