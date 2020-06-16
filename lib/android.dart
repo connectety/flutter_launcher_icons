@@ -54,16 +54,8 @@ void addNewIcon(
   isAndroidIconNameCorrectFormat(iconName);
 
   final String iconPath = '$iconName.png';
-
-  if (isSvgImage(filePath)) {
-    for (AndroidIconTemplate template in androidIcons) {
-      convertSvgToPng(iconPath, filePath, template.size, template.size);
-    }
-  } else {
-    final Image image = decodeImage(File(filePath).readAsBytesSync());
-    for (AndroidIconTemplate template in androidIcons) {
-      saveNewImages(template, image, iconPath);
-    }
+  for (AndroidIconTemplate template in androidIcons) {
+    saveNewImages(template, filePath, iconPath);
   }
 
   overwriteAndroidManifestWithNewLauncherIcon(iconName);
@@ -71,19 +63,12 @@ void addNewIcon(
 
 // replaces ic_launcher.png launcher icon
 void replaceDefaultFlutterProjectIcon(String filePath) {
-  print(File(filePath).readAsStringSync());
-
-  Image image;
-  if (isPngImage(filePath)) {
-    image = decodeImage(File(filePath).readAsBytesSync());
-  } else {
-    print('Overwriting the default Android launcher icon with a new icon');
-    for (AndroidIconTemplate template in androidIcons) {
-      overwriteExistingIcons(template, image, constants.androidFileName);
-    }
-    overwriteAndroidManifestWithNewLauncherIcon(
-        constants.androidDefaultIconName);
+  print('Overwriting the default Android launcher icon with a new icon');
+  for (AndroidIconTemplate template in androidIcons) {
+    overwriteExistingIcons(template, filePath, constants.androidFileName);
   }
+  overwriteAndroidManifestWithNewLauncherIcon(
+      constants.androidDefaultIconName);
 }
 
 /// Ensures that the Android icon name is in the correct format
@@ -104,14 +89,12 @@ void createAdaptiveIcons(Map<String, dynamic> flutterLauncherIconsConfig) {
       flutterLauncherIconsConfig['adaptive_icon_background'];
   final String foregroundImagePath =
       flutterLauncherIconsConfig['adaptive_icon_foreground'];
-  final Image foregroundImage =
-      decodeImage(File(foregroundImagePath).readAsBytesSync());
 
   // Create adaptive icon foreground images
   for (AndroidIconTemplate androidIcon in adaptiveForegroundIcons) {
     overwriteExistingIcons(
       androidIcon,
-      foregroundImage,
+      foregroundImagePath,
       constants.androidAdaptiveForegroundFileName,
     );
   }
@@ -159,17 +142,14 @@ void createAdaptiveIconMipmapXmlFile(
 }
 
 /// creates adaptive background using png image
-void createAdaptiveBackgrounds(
-    Map<String, dynamic> yamlConfig, String adaptiveIconBackgroundImagePath) {
-  final String filePath = adaptiveIconBackgroundImagePath;
-  final Image image = decodeImage(File(filePath).readAsBytesSync());
+void createAdaptiveBackgrounds(Map<String, dynamic> yamlConfig, String filePath) {
 
   // creates a png image (ic_adaptive_background.png) for the adaptive icon background in each of the locations
   // it is required
   for (AndroidIconTemplate androidIcon in adaptiveForegroundIcons) {
     saveNewImages(
       androidIcon,
-      image,
+      filePath,
       constants.androidAdaptiveBackgroundFileName,
     );
   }
@@ -236,24 +216,41 @@ String getNewIconName(Map<String, dynamic> config) {
 /// Note: Do not change interpolation unless you end up with better results (see issue for result when using cubic
 /// interpolation)
 /// https://github.com/fluttercommunity/flutter_launcher_icons/issues/101#issuecomment-495528733
-void overwriteExistingIcons(AndroidIconTemplate template, Image image,
-    String filename) {
-  final Image newImage = createResizedImage(template.size, image);
+void overwriteExistingIcons(AndroidIconTemplate template, String path, String filename) {
   final String newFilePath = p.join(
       constants.androidResFolder, template.directoryName, filename);
-  final File newFile = File(newFilePath)..createSync(recursive: true);
-  newFile.writeAsBytesSync(encodePng(newImage));
+
+  if (isPngJpgImage(path)) {
+    final Image foregroundImage = decodeImage(File(path).readAsBytesSync());
+
+    final Image newImage = createResizedImage(template.size, foregroundImage);
+    final File newFile = File(newFilePath)..createSync(recursive: true);
+    newFile.writeAsBytesSync(encodePng(newImage));
+  } else if (isSvgImage(path)) {
+    convertSvgToPng(path, newFilePath, template.size, template.size);
+  } else {
+    throw const InvalidImageFormatException();
+  }
 }
 
 /// Saves new launcher icons to the project, keeping the old launcher icons.
 /// Note: Do not change interpolation unless you end up with better results
 /// https://github.com/fluttercommunity/flutter_launcher_icons/issues/101#issuecomment-495528733
-void saveNewImages(AndroidIconTemplate template, Image image, String iconFilePath) {
-  final Image newImage = createResizedImage(template.size, image);
+void saveNewImages(AndroidIconTemplate template, String path, String iconFilePath) {
   final String newFilePath = p.join(
       constants.androidResFolder, template.directoryName, iconFilePath);
-  final File newFile = File(newFilePath)..createSync(recursive: true);
-  newFile.writeAsBytesSync(encodePng(newImage));
+
+  if (isPngJpgImage(path)) {
+    final Image image = decodeImage(File(path).readAsBytesSync());
+
+    final Image newImage = createResizedImage(template.size, image);
+    final File newFile = File(newFilePath)..createSync(recursive: true);
+    newFile.writeAsBytesSync(encodePng(newImage));
+  } else if (isSvgImage(path)) {
+    convertSvgToPng(path, newFilePath, template.size, template.size);
+  } else {
+    throw const InvalidImageFormatException();
+  }
 }
 
 /// Updates the line which specifies the launcher icon within the AndroidManifest.xml

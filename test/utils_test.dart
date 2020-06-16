@@ -1,40 +1,26 @@
-
-import 'package:flutter_launcher_icons/custom_exceptions.dart';
 import 'package:flutter_launcher_icons/utils.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('Produces expected png file path ', () {
-    const String path = 'assets/images/icon-710x599-android.svg';
-    const String expectedResult = 'assets/images/icon-710x599-android.png';
-    expect(
-        convertFilenameToPng(path), expectedResult);
+  const String pngFile = 'assets/images/icon-710x599-android.png';
+  const String jpgFile = 'assets/images/icon-710x599-android.jpg';
+  const String jpg2File = 'assets/images/icon-710x599-android.jpeg';
+  const String svgFile = 'assets/images/icon-710x599-android.svg';
+  const String pdfFile = 'assets/images/icon-710x599-android.pdf';
+
+  test('Is PNG file', () {
+    expect(isPngJpgImage(pngFile), true);
+    expect(isPngJpgImage(jpgFile), true);
+    expect(isPngJpgImage(jpg2File), true);
+    expect(isPngJpgImage(svgFile), false);
+    expect(isPngJpgImage(pdfFile), false);
   });
 
-  test('Is PNG file', (){
-    const String file = 'assets/images/icon-710x599-android.png';
-    expect(isPngImage(file), true);
-  });
-
-  test('Is SVG file', (){
-    const String file = 'assets/images/icon-710x599-android.svg';
-    expect(isSvgImage(file), true);
-  });
-
-  test('generateSvgToPngFileName from png', () {
-    const String path = 'assets/images/icon-710x599-android.svg.png';
-    const String expectedResult = 'assets/images/icon-710x599-android.svg.png';
-    expect(convertFilenameToPng(path), expectedResult);
-
-    const String path2 = 'assets/images/icon-710x599-android.svg.txt.svg';
-    const String expectedResult2 = 'assets/images/icon-710x599-android.svg.txt.png';
-    expect(convertFilenameToPng(path2), expectedResult2);
-  });
-  
-  test('Throws InvalidImageFormatException', () {
-    const String path = 'assets/images/icon.svg.pdf';
-    const String path2 = 'assets/images/icon.svg.xml';
-    expect(() => convertFilenameToPng(path), throwsA(const TypeMatcher<InvalidImageFormatException>()));
-    expect(() => convertFilenameToPng(path2), throwsA(const TypeMatcher<InvalidImageFormatException>()));
+  test('Is SVG file', () {
+    expect(isSvgImage(svgFile), true);
+    expect(isSvgImage(pngFile), false);
+    expect(isSvgImage(jpgFile), false);
+    expect(isSvgImage(jpg2File), false);
+    expect(isSvgImage(pdfFile), false);
   });
 }

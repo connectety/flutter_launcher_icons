@@ -72,8 +72,11 @@ void createIcons(Map<String, dynamic> config) {
 /// interpolation)
 /// https://github.com/fluttercommunity/flutter_launcher_icons/issues/101#issuecomment-495528733
 void overwriteDefaultIcons(IosIconTemplate template, String imagePath) {
-  final String newIconPath = p.join(iosDefaultIconFolder, iosDefaultIconName + template.name + '.png');
-  if (isPngImage(imagePath)) {
+  final String newIconPath = p.join(
+    iosDefaultIconFolder,
+    iosDefaultIconName + template.name + '.png',
+  );
+  if (isPngJpgImage(imagePath)) {
     final Image image = decodeImage(File(imagePath).readAsBytesSync());
 
     final Image newFile = createResizedImage(template.size, image);
@@ -95,7 +98,7 @@ void saveNewIcons(IosIconTemplate template, String filePath, String newIconName)
     newIconName + template.name + '.png',
   );
 
-  if (isPngImage(filePath)) {
+  if (isPngJpgImage(filePath)) {
     final Image image = decodeImage(File(filePath).readAsBytesSync());
     final Image newImage = createResizedImage(template.size, image);
 
